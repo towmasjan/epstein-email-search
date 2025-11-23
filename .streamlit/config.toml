@@ -13,3 +13,8 @@ font = "sans serif"
 [ui]
 hideTopBar = false
 
+[runner]
+fastReruns = true
+magicEnabled = true
+installTracer = false
+
