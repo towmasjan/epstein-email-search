@@ -11,6 +11,57 @@ from translation_utils import (
 )
 import re
 
+# KROK 2: Funkcja pomocnicza do formatowania tekstu maila
+def format_email_text(text, highlight_pattern=None, case_sensitive=False):
+    """
+    Formatuje tekst maila z podziałem na akapity i podświetleniem.
+    
+    Args:
+        text: Tekst do sformatowania
+        highlight_pattern: Wzorzec do podświetlenia (opcjonalnie)
+        case_sensitive: Czy wyszukiwanie ma być case-sensitive
+    
+    Returns:
+        Sformatowany tekst HTML
+    """
+    if not text or not text.strip():
+        return ""
+    
+    # Podziel na akapity (podwójne znaki nowej linii lub pojedyncze dla krótkich linii)
+    # Najpierw podziel na podwójne znaki nowej linii
+    paragraphs = text.split('\n\n')
+    
+    # Jeśli nie ma podwójnych, podziel na pojedyncze (dla lepszego formatowania)
+    if len(paragraphs) == 1:
+        paragraphs = [p for p in text.split('\n') if p.strip()]
+    
+    formatted_paragraphs = []
+    for para in paragraphs:
+        if not para.strip():
+            continue
+        
+        # Oczyść z nadmiarowych spacji
+        para = ' '.join(para.split())
+        
+        # Podświetl jeśli jest wzorzec
+        if highlight_pattern:
+            try:
+                pattern = re.compile(re.escape(highlight_pattern), 
+                                   re.IGNORECASE if not case_sensitive else 0)
+                para = pattern.sub(
+                    lambda m: f"<mark style='background-color: #ffeb3b; padding: 2px 4px; border-radius: 3px; font-weight: bold;'>{m.group()}</mark>", 
+                    para
+                )
+            except:
+                pass  # Jeśli regex nie działa, wyświetl bez podświetlenia
+        
+        # Formatuj jako akapit z lepszymi stylami
+        formatted_paragraphs.append(
+            f"<p style='margin-bottom: 1em; line-height: 1.6; text-align: left; word-wrap: break-word;'>{para}</p>"
+        )
+    
+    return "\n".join(formatted_paragraphs)
+
 st.set_page_config(
     page_title="Akta Epsteina - Wyszukiwarka Maili",
     page_icon="📧",
@@ -19,6 +70,54 @@ st.set_page_config(
 
 st.title("📧 Akta Epsteina - Wyszukiwarka Maili")
 st.markdown("**Wyszukiwanie i przeglądanie maili po angielsku**")
+
+# Opis aplikacji
+with st.expander("ℹ️ O aplikacji", expanded=False):
+    st.markdown("""
+    ### 📖 Opis
+    
+    Ta aplikacja służy do **wyszukiwania i przeglądania maili** pochodzących z publicznego repozytorium 
+    [Hugging Face](https://huggingface.co/datasets/tensonaut/EPSTEIN_FILES_20K). 
+    Aplikacja została stworzona wyłącznie w **celach badawczych i edukacyjnych**.
+    
+    ### 🔍 Jak działa program?
+    
+    1. **Wyszukiwanie**: Wpisz słowo kluczowe, nazwisko lub frazę w polu wyszukiwania.
+       - Możesz pisać po **polsku** - aplikacja automatycznie przetłumaczy zapytanie na angielski
+       - Możesz również pisać bezpośrednio po angielsku
+    
+    2. **Wyniki**: Aplikacja wyświetli wszystkie maile zawierające wyszukiwane słowo/frazę
+       - Każdy wynik pokazuje metadane (nadawca, odbiorca, data, temat)
+       - Wyszukiwane słowa są **podświetlone** w tekście
+    
+    3. **Tłumaczenie**: Każdy mail można przetłumaczyć na polski klikając przycisk **"🔄 Przetłumacz na polski"**
+       - ⚠️ **Uwaga**: Tłumaczenie nie jest idealne, ponieważ korzysta z publicznego modelu tłumaczeniowego 
+         z repozytorium Hugging Face
+       - Tłumaczenie może zawierać błędy lub nieprecyzyjne sformułowania
+       - Dla najlepszych wyników zalecamy korzystanie z oryginalnego tekstu po angielsku
+    
+    ### 📊 Funkcje
+    
+    - ✅ Automatyczne tłumaczenie zapytań wyszukiwania (polski → angielski)
+    - ✅ Podświetlanie wyszukiwanych słów w wynikach
+    - ✅ Tłumaczenie pojedynczych maili na żądanie
+    - ✅ Paginacja wyników (10 wyników na stronę)
+    - ✅ Cache tłumaczeń (szybsze działanie)
+    
+    ### ⚖️ Zastrzeżenia
+    
+    - Aplikacja wykorzystuje dane z publicznego repozytorium Hugging Face
+    - Tłumaczenia są generowane automatycznie i mogą zawierać błędy
+    - Aplikacja służy wyłącznie celom badawczym i edukacyjnym
+    
+    ### 👤 Autor
+    
+    **Petros Tovmasyan**
+    
+    ---
+    
+    *Aplikacja wykorzystuje biblioteki: Streamlit, Hugging Face Transformers, Pandas*
+    """)
 
 # Auto-load dataset
 DATASET_NAME = "tensonaut/EPSTEIN_FILES_20K"
@@ -39,13 +138,22 @@ st.header("🔍 Wyszukiwanie w mailach")
 
 if 'dataset' in st.session_state:
     dataset = st.session_state['dataset']
-    try:
-        df = dataset.to_pandas()
-        if 'text' not in df.columns or 'filename' not in df.columns:
-            st.error("❌ Błąd: Brak wymaganych kolumn w zbiorze danych")
-            st.stop()
-    except Exception as e:
-        st.error(f"❌ Błąd podczas konwersji do pandas: {e}")
+    
+    # KROK 3: Cache DataFrame w session_state
+    if 'dataframe' not in st.session_state:
+        with st.spinner("🔄 Konwersja danych do formatu pandas..."):
+            try:
+                df = dataset.to_pandas()
+                st.session_state['dataframe'] = df
+            except Exception as e:
+                st.error(f"❌ Błąd podczas konwersji do pandas: {e}")
+                st.stop()
+    else:
+        df = st.session_state['dataframe']
+    
+    # Sprawdź kolumny
+    if 'text' not in df.columns or 'filename' not in df.columns:
+        st.error("❌ Błąd: Brak wymaganych kolumn w zbiorze danych")
         st.stop()
     
     # Wyszukiwarka
@@ -95,17 +203,52 @@ if 'dataset' in st.session_state:
                         filtered_df = pd.DataFrame()
                     
                     if len(filtered_df) > 0:
-                        st.success(f"✅ Znaleziono {len(filtered_df)} maili")
-                        
                         # KROK 1: Zapisz stan wyszukiwania w session_state
-                        st.session_state['search_results'] = filtered_df.head(100).copy()  # Ograniczenie do 100 wyników
+                        filtered_df_limited = filtered_df.head(100).copy()  # Ograniczenie do 100 wyników
+                        st.session_state['search_results'] = filtered_df_limited
                         st.session_state['last_search_query'] = search_query_final
                         st.session_state['last_case_sensitive'] = case_sensitive
                         st.session_state['last_search_in_text'] = search_in_text
                         st.session_state['last_original_query'] = original_query
                         
-                        # Wyświetl wyniki
-                        for idx, row in filtered_df.head(100).iterrows():
+                        st.success(f"✅ Znaleziono {len(filtered_df)} maili")
+                        
+                        # KROK 4: Paginacja wyników
+                        RESULTS_PER_PAGE = 10
+                        total_results = len(filtered_df_limited)
+                        total_pages = (total_results + RESULTS_PER_PAGE - 1) // RESULTS_PER_PAGE
+                        
+                        if total_pages > 1:
+                            # Zapisz numer strony w session_state jeśli nie istnieje
+                            page_key = 'results_page'
+                            if page_key not in st.session_state:
+                                st.session_state[page_key] = 1
+                            
+                            col1, col2, col3 = st.columns([1, 2, 1])
+                            with col2:
+                                page = st.number_input(
+                                    "Strona", 
+                                    min_value=1, 
+                                    max_value=total_pages, 
+                                    value=st.session_state.get(page_key, 1),
+                                    key=page_key,
+                                    help=f"Wyświetlanie {RESULTS_PER_PAGE} wyników na stronę"
+                                )
+                                st.session_state[page_key] = page
+                            
+                            st.caption(f"📄 Strona {page} z {total_pages} ({RESULTS_PER_PAGE} wyników na stronę, łącznie {total_results} wyników)")
+                            st.divider()
+                        
+                        # Oblicz zakres wyników do wyświetlenia
+                        if total_pages > 1:
+                            start_idx = (page - 1) * RESULTS_PER_PAGE
+                            end_idx = min(start_idx + RESULTS_PER_PAGE, total_results)
+                            results_to_show = filtered_df_limited.iloc[start_idx:end_idx]
+                        else:
+                            results_to_show = filtered_df_limited
+                        
+                        # Wyświetl wyniki z aktualnej strony
+                        for idx, row in results_to_show.iterrows():
                             try:
                                 row_text = str(row.get('text', ''))
                                 row_filename = str(row.get('filename', 'N/A'))
@@ -136,23 +279,43 @@ if 'dataset' in st.session_state:
                                 expander_title += f" ({occurrences} wystąpień)"
                                 
                                 with st.expander(expander_title, expanded=False):
-                                    # Wyświetl metadane jeśli są dostępne
-                                    if metadata['subject'] != 'N/A':
-                                        st.caption(f"📌 Temat: {metadata['subject']}")
+                                    # KROK 5: Lepsze formatowanie metadanych w kolumnach
+                                    if metadata['subject'] != 'N/A' or any(v != 'N/A' for v in [metadata['from'], metadata['to'], metadata['date']]):
+                                        col1, col2 = st.columns(2)
+                                        with col1:
+                                            if metadata['from'] != 'N/A':
+                                                st.markdown(f"**📤 Od:** `{metadata['from'][:50]}{'...' if len(metadata['from']) > 50 else ''}`")
+                                            if metadata['to'] != 'N/A':
+                                                st.markdown(f"**📥 Do:** `{metadata['to'][:50]}{'...' if len(metadata['to']) > 50 else ''}`")
+                                        with col2:
+                                            if metadata['date'] != 'N/A':
+                                                st.markdown(f"**📅 Data:** `{metadata['date']}`")
+                                            if metadata['subject'] != 'N/A':
+                                                st.markdown(f"**📌 Temat:** `{metadata['subject'][:50]}{'...' if len(metadata['subject']) > 50 else ''}`")
+                                        
+                                        st.divider()
                                     
                                     # Wyświetl oryginalny tekst (zawsze po angielsku)
                                     st.markdown("**🇬🇧 Oryginał (angielski):**")
                                     
-                                    # Podświetl wyszukiwane słowo
-                                    if search_query_final.lower() in row_text.lower():
-                                        pattern = re.compile(re.escape(search_query_final), re.IGNORECASE if not case_sensitive else 0)
-                                        # Wyświetl pełny tekst (lub pierwsze 5000 znaków dla długich maili)
-                                        display_text = row_text[:5000] if len(row_text) > 5000 else row_text
-                                        highlighted = pattern.sub(lambda m: f"**{m.group()}**", display_text)
-                                        st.markdown(highlighted + ("..." if len(row_text) > 5000 else ""))
-                                    else:
-                                        display_text = row_text[:5000] if len(row_text) > 5000 else row_text
-                                        st.text(display_text + ("..." if len(row_text) > 5000 else ""))
+                                    # KROK 2: Użyj lepszego formatowania
+                                    display_text = row_text[:5000] if len(row_text) > 5000 else row_text
+                                    
+                                    # Formatuj tekst z podświetleniem
+                                    formatted_text = format_email_text(
+                                        display_text, 
+                                        highlight_pattern=search_query_final if search_query_final.lower() in row_text.lower() else None,
+                                        case_sensitive=case_sensitive
+                                    )
+                                    
+                                    # Wyświetl w kontenerze z lepszym stylem
+                                    st.markdown(
+                                        f"<div style='background-color: #f8f9fa; padding: 15px; border-radius: 5px; border-left: 4px solid #1f77b4; max-height: 500px; overflow-y: auto;'>{formatted_text}</div>", 
+                                        unsafe_allow_html=True
+                                    )
+                                    
+                                    if len(row_text) > 5000:
+                                        st.caption("⚠️ Wyświetlono pierwsze 5000 znaków. Kliknij 'Przetłumacz' aby zobaczyć pełne tłumaczenie.")
                                     
                                     st.caption(f"📊 Długość: {len(row_text):,} znaków")
                                     
@@ -166,28 +329,68 @@ if 'dataset' in st.session_state:
                                         st.markdown("**🇵🇱 Tłumaczenie (polski):**")
                                         translated_text = st.session_state[translation_key]
                                         
-                                        # Podświetl wyszukiwane słowo w tłumaczeniu
-                                        if search_query_final.lower() in translated_text.lower():
-                                            pattern = re.compile(re.escape(search_query_final), re.IGNORECASE if not case_sensitive else 0)
-                                            display_trans = translated_text[:5000] if len(translated_text) > 5000 else translated_text
-                                            highlighted_trans = pattern.sub(lambda m: f"**{m.group()}**", display_trans)
-                                            st.markdown(highlighted_trans + ("..." if len(translated_text) > 5000 else ""))
-                                        else:
-                                            display_trans = translated_text[:5000] if len(translated_text) > 5000 else translated_text
-                                            st.text(display_trans + ("..." if len(translated_text) > 5000 else ""))
+                                        # KROK 2: Użyj lepszego formatowania
+                                        display_trans = translated_text[:5000] if len(translated_text) > 5000 else translated_text
+                                        
+                                        formatted_trans = format_email_text(
+                                            display_trans,
+                                            highlight_pattern=search_query_final if search_query_final.lower() in translated_text.lower() else None,
+                                            case_sensitive=case_sensitive
+                                        )
+                                        
+                                        st.markdown(
+                                            f"<div style='background-color: #e8f5e9; padding: 15px; border-radius: 5px; border-left: 4px solid #4caf50; max-height: 500px; overflow-y: auto;'>{formatted_trans}</div>",
+                                            unsafe_allow_html=True
+                                        )
+                                        
+                                        if len(translated_text) > 5000:
+                                            st.caption("⚠️ Wyświetlono pierwsze 5000 znaków tłumaczenia.")
                                     else:
                                         # Przycisk do tłumaczenia
                                         if st.button("🔄 Przetłumacz na polski", key=translate_button_key):
-                                            with st.spinner("🔄 Tłumaczenie na polski..."):
-                                                try:
-                                                    # Tłumacz pełny tekst (lub fragment dla długich maili)
-                                                    text_to_translate = row_text[:5000] if len(row_text) > 5000 else row_text
-                                                    translated = translate_text(text_to_translate, None)
+                                            # KROK 1: Progress bar i optymalizacja
+                                            progress_container = st.empty()
+                                            result_container = st.empty()
+                                            
+                                            with progress_container.container():
+                                                st.info("🔄 Tłumaczenie na polski... To może zająć kilka sekund.")
+                                                progress_bar = st.progress(0)
+                                                status_text = st.empty()
+                                            
+                                            try:
+                                                # Ograniczenie długości tekstu do 3000 znaków (optymalizacja)
+                                                text_to_translate = row_text[:3000] if len(row_text) > 3000 else row_text
+                                                
+                                                # Aktualizuj progress
+                                                status_text.text("📝 Przygotowywanie tekstu...")
+                                                progress_bar.progress(0.1)
+                                                
+                                                # Sprawdź czy model jest już załadowany
+                                                if 'translator' not in st.session_state:
+                                                    status_text.text("🤖 Ładowanie modelu tłumaczeniowego... (to może zająć chwilę)")
+                                                    progress_bar.progress(0.2)
+                                                
+                                                # Dla długich tekstów informuj o dzieleniu
+                                                if len(text_to_translate) > 500:
+                                                    status_text.text("📄 Dzielenie tekstu na fragmenty...")
+                                                    progress_bar.progress(0.3)
+                                                
+                                                # Tłumaczenie
+                                                status_text.text("🌐 Tłumaczenie tekstu...")
+                                                progress_bar.progress(0.5)
+                                                translated = translate_text(text_to_translate, None)
+                                                
+                                                # Walidacja
+                                                status_text.text("✅ Walidacja tłumaczenia...")
+                                                progress_bar.progress(0.8)
                                                     
-                                                    # Podwójna walidacja
-                                                    is_valid, reason = double_validate_translation(text_to_translate, translated)
-                                                    
-                                                    if is_valid:
+                                                # Podwójna walidacja
+                                                is_valid, reason = double_validate_translation(text_to_translate, translated)
+                                                
+                                                progress_bar.progress(1.0)
+                                                progress_container.empty()  # Usuń progress bar po zakończeniu
+                                                
+                                                if is_valid:
                                                         st.session_state[translation_key] = translated
                                                         st.success("✅ Tłumaczenie zakończone pomyślnie!")
                                                         # KROK 3: Wyświetl tłumaczenie bezpośrednio zamiast st.rerun()
@@ -195,25 +398,43 @@ if 'dataset' in st.session_state:
                                                         st.markdown("**🇵🇱 Tłumaczenie (polski):**")
                                                         translated_text = st.session_state[translation_key]
                                                         
-                                                        # Podświetl wyszukiwane słowo w tłumaczeniu
-                                                        if search_query_final.lower() in translated_text.lower():
-                                                            pattern = re.compile(re.escape(search_query_final), re.IGNORECASE if not case_sensitive else 0)
-                                                            display_trans = translated_text[:5000] if len(translated_text) > 5000 else translated_text
-                                                            highlighted_trans = pattern.sub(lambda m: f"**{m.group()}**", display_trans)
-                                                            st.markdown(highlighted_trans + ("..." if len(translated_text) > 5000 else ""))
-                                                        else:
-                                                            display_trans = translated_text[:5000] if len(translated_text) > 5000 else translated_text
-                                                            st.text(display_trans + ("..." if len(translated_text) > 5000 else ""))
-                                                    else:
-                                                        # Spróbuj fallback
-                                                        st.warning(f"⚠️ Tłumaczenie nie przeszło walidacji: {reason}")
+                                                        # KROK 2: Użyj lepszego formatowania
+                                                        display_trans = translated_text[:5000] if len(translated_text) > 5000 else translated_text
+                                                        
+                                                        formatted_trans = format_email_text(
+                                                            display_trans,
+                                                            highlight_pattern=search_query_final if search_query_final.lower() in translated_text.lower() else None,
+                                                            case_sensitive=case_sensitive
+                                                        )
+                                                        
+                                                        st.markdown(
+                                                            f"<div style='background-color: #e8f5e9; padding: 15px; border-radius: 5px; border-left: 4px solid #4caf50; max-height: 500px; overflow-y: auto;'>{formatted_trans}</div>",
+                                                            unsafe_allow_html=True
+                                                        )
+                                                        
+                                                        if len(translated_text) > 5000:
+                                                            st.caption("⚠️ Wyświetlono pierwsze 5000 znaków tłumaczenia.")
+                                                else:
+                                                    # Spróbuj fallback
+                                                    progress_container.empty()
+                                                    st.warning(f"⚠️ Tłumaczenie nie przeszło walidacji: {reason}")
+                                                    
+                                                    # Progress dla fallback
+                                                    with progress_container.container():
                                                         st.info("🔄 Próbuję alternatywnej metody tłumaczenia...")
-                                                        fallback_translated = translate_with_fallback(text_to_translate)
+                                                        fallback_progress = st.progress(0)
+                                                        fallback_status = st.empty()
+                                                    
+                                                    fallback_status.text("🌐 Tłumaczenie metodą alternatywną...")
+                                                    fallback_progress.progress(0.5)
+                                                    fallback_translated = translate_with_fallback(text_to_translate)
+                                                    fallback_progress.progress(1.0)
+                                                    progress_container.empty()
                                                         
-                                                        # Walidacja fallback
-                                                        is_valid_fallback, reason_fallback = double_validate_translation(text_to_translate, fallback_translated)
-                                                        
-                                                        if is_valid_fallback:
+                                                    # Walidacja fallback
+                                                    is_valid_fallback, reason_fallback = double_validate_translation(text_to_translate, fallback_translated)
+                                                    
+                                                    if is_valid_fallback:
                                                             st.session_state[translation_key] = fallback_translated
                                                             st.success("✅ Tłumaczenie zakończone pomyślnie (metoda alternatywna)!")
                                                             # KROK 3: Wyświetl tłumaczenie bezpośrednio zamiast st.rerun()
@@ -221,20 +442,28 @@ if 'dataset' in st.session_state:
                                                             st.markdown("**🇵🇱 Tłumaczenie (polski):**")
                                                             translated_text = st.session_state[translation_key]
                                                             
-                                                            # Podświetl wyszukiwane słowo w tłumaczeniu
-                                                            if search_query_final.lower() in translated_text.lower():
-                                                                pattern = re.compile(re.escape(search_query_final), re.IGNORECASE if not case_sensitive else 0)
-                                                                display_trans = translated_text[:5000] if len(translated_text) > 5000 else translated_text
-                                                                highlighted_trans = pattern.sub(lambda m: f"**{m.group()}**", display_trans)
-                                                                st.markdown(highlighted_trans + ("..." if len(translated_text) > 5000 else ""))
-                                                            else:
-                                                                display_trans = translated_text[:5000] if len(translated_text) > 5000 else translated_text
-                                                                st.text(display_trans + ("..." if len(translated_text) > 5000 else ""))
-                                                        else:
-                                                            st.error(f"❌ Nie udało się przetłumaczyć: {reason_fallback}")
-                                                            st.info("💡 Wyświetlany jest oryginalny tekst po angielsku")
-                                                except Exception as e:
-                                                    st.error(f"❌ Błąd podczas tłumaczenia: {e}")
+                                                            # KROK 2: Użyj lepszego formatowania
+                                                            display_trans = translated_text[:5000] if len(translated_text) > 5000 else translated_text
+                                                            
+                                                            formatted_trans = format_email_text(
+                                                                display_trans,
+                                                                highlight_pattern=search_query_final if search_query_final.lower() in translated_text.lower() else None,
+                                                                case_sensitive=case_sensitive
+                                                            )
+                                                            
+                                                            st.markdown(
+                                                                f"<div style='background-color: #e8f5e9; padding: 15px; border-radius: 5px; border-left: 4px solid #4caf50; max-height: 500px; overflow-y: auto;'>{formatted_trans}</div>",
+                                                                unsafe_allow_html=True
+                                                            )
+                                                            
+                                                            if len(translated_text) > 5000:
+                                                                st.caption("⚠️ Wyświetlono pierwsze 5000 znaków tłumaczenia.")
+                                                    else:
+                                                        st.error(f"❌ Nie udało się przetłumaczyć: {reason_fallback}")
+                                                        st.info("💡 Wyświetlany jest oryginalny tekst po angielsku")
+                                            except Exception as e:
+                                                progress_container.empty()
+                                                st.error(f"❌ Błąd podczas tłumaczenia: {e}")
                             except Exception as e:
                                 st.warning(f"⚠️ Błąd podczas przetwarzania maila: {e}")
                                 continue
@@ -256,8 +485,43 @@ if 'dataset' in st.session_state:
         if len(filtered_df) > 0:
             st.success(f"✅ Znaleziono {len(filtered_df)} maili")
             
-            # Wyświetl wyniki (identyczna logika jak w głównej pętli)
-            for idx, row in filtered_df.iterrows():
+            # KROK 4: Paginacja wyników
+            RESULTS_PER_PAGE = 10
+            total_results = len(filtered_df)
+            total_pages = (total_results + RESULTS_PER_PAGE - 1) // RESULTS_PER_PAGE
+            
+            if total_pages > 1:
+                # Zapisz numer strony w session_state jeśli nie istnieje
+                page_key = 'results_page'
+                if page_key not in st.session_state:
+                    st.session_state[page_key] = 1
+                
+                col1, col2, col3 = st.columns([1, 2, 1])
+                with col2:
+                    page = st.number_input(
+                        "Strona", 
+                        min_value=1, 
+                        max_value=total_pages, 
+                        value=st.session_state.get(page_key, 1),
+                        key=page_key,
+                        help=f"Wyświetlanie {RESULTS_PER_PAGE} wyników na stronę"
+                    )
+                    st.session_state[page_key] = page
+                
+                st.caption(f"📄 Strona {page} z {total_pages} ({RESULTS_PER_PAGE} wyników na stronę, łącznie {total_results} wyników)")
+                st.divider()
+            
+            # Oblicz zakres wyników do wyświetlenia
+            if total_pages > 1:
+                page = st.session_state.get('results_page', 1)
+                start_idx = (page - 1) * RESULTS_PER_PAGE
+                end_idx = min(start_idx + RESULTS_PER_PAGE, total_results)
+                results_to_show = filtered_df.iloc[start_idx:end_idx]
+            else:
+                results_to_show = filtered_df
+            
+            # Wyświetl wyniki z aktualnej strony (identyczna logika jak w głównej pętli)
+            for idx, row in results_to_show.iterrows():
                 try:
                     row_text = str(row.get('text', ''))
                     row_filename = str(row.get('filename', 'N/A'))
@@ -288,22 +552,41 @@ if 'dataset' in st.session_state:
                     expander_title += f" ({occurrences} wystąpień)"
                     
                     with st.expander(expander_title, expanded=False):
-                        # Wyświetl metadane jeśli są dostępne
-                        if metadata['subject'] != 'N/A':
-                            st.caption(f"📌 Temat: {metadata['subject']}")
+                        # KROK 5: Lepsze formatowanie metadanych w kolumnach
+                        if metadata['subject'] != 'N/A' or any(v != 'N/A' for v in [metadata['from'], metadata['to'], metadata['date']]):
+                            col1, col2 = st.columns(2)
+                            with col1:
+                                if metadata['from'] != 'N/A':
+                                    st.markdown(f"**📤 Od:** `{metadata['from'][:50]}{'...' if len(metadata['from']) > 50 else ''}`")
+                                if metadata['to'] != 'N/A':
+                                    st.markdown(f"**📥 Do:** `{metadata['to'][:50]}{'...' if len(metadata['to']) > 50 else ''}`")
+                            with col2:
+                                if metadata['date'] != 'N/A':
+                                    st.markdown(f"**📅 Data:** `{metadata['date']}`")
+                                if metadata['subject'] != 'N/A':
+                                    st.markdown(f"**📌 Temat:** `{metadata['subject'][:50]}{'...' if len(metadata['subject']) > 50 else ''}`")
+                            
+                            st.divider()
                         
                         # Wyświetl oryginalny tekst (zawsze po angielsku)
                         st.markdown("**🇬🇧 Oryginał (angielski):**")
                         
-                        # Podświetl wyszukiwane słowo
-                        if search_query_final.lower() in row_text.lower():
-                            pattern = re.compile(re.escape(search_query_final), re.IGNORECASE if not case_sensitive else 0)
-                            display_text = row_text[:5000] if len(row_text) > 5000 else row_text
-                            highlighted = pattern.sub(lambda m: f"**{m.group()}**", display_text)
-                            st.markdown(highlighted + ("..." if len(row_text) > 5000 else ""))
-                        else:
-                            display_text = row_text[:5000] if len(row_text) > 5000 else row_text
-                            st.text(display_text + ("..." if len(row_text) > 5000 else ""))
+                        # KROK 2: Użyj lepszego formatowania
+                        display_text = row_text[:5000] if len(row_text) > 5000 else row_text
+                        
+                        formatted_text = format_email_text(
+                            display_text,
+                            highlight_pattern=search_query_final if search_query_final.lower() in row_text.lower() else None,
+                            case_sensitive=case_sensitive
+                        )
+                        
+                        st.markdown(
+                            f"<div style='background-color: #f8f9fa; padding: 15px; border-radius: 5px; border-left: 4px solid #1f77b4; max-height: 500px; overflow-y: auto;'>{formatted_text}</div>",
+                            unsafe_allow_html=True
+                        )
+                        
+                        if len(row_text) > 5000:
+                            st.caption("⚠️ Wyświetlono pierwsze 5000 znaków. Kliknij 'Przetłumacz' aby zobaczyć pełne tłumaczenie.")
                         
                         st.caption(f"📊 Długość: {len(row_text):,} znaków")
                         
@@ -317,68 +600,127 @@ if 'dataset' in st.session_state:
                             st.markdown("**🇵🇱 Tłumaczenie (polski):**")
                             translated_text = st.session_state[translation_key]
                             
-                            # Podświetl wyszukiwane słowo w tłumaczeniu
-                            if search_query_final.lower() in translated_text.lower():
-                                pattern = re.compile(re.escape(search_query_final), re.IGNORECASE if not case_sensitive else 0)
-                                display_trans = translated_text[:5000] if len(translated_text) > 5000 else translated_text
-                                highlighted_trans = pattern.sub(lambda m: f"**{m.group()}**", display_trans)
-                                st.markdown(highlighted_trans + ("..." if len(translated_text) > 5000 else ""))
-                            else:
-                                display_trans = translated_text[:5000] if len(translated_text) > 5000 else translated_text
-                                st.text(display_trans + ("..." if len(translated_text) > 5000 else ""))
+                            # KROK 2: Użyj lepszego formatowania
+                            display_trans = translated_text[:5000] if len(translated_text) > 5000 else translated_text
+                            
+                            formatted_trans = format_email_text(
+                                display_trans,
+                                highlight_pattern=search_query_final if search_query_final.lower() in translated_text.lower() else None,
+                                case_sensitive=case_sensitive
+                            )
+                            
+                            st.markdown(
+                                f"<div style='background-color: #e8f5e9; padding: 15px; border-radius: 5px; border-left: 4px solid #4caf50; max-height: 500px; overflow-y: auto;'>{formatted_trans}</div>",
+                                unsafe_allow_html=True
+                            )
+                            
+                            if len(translated_text) > 5000:
+                                st.caption("⚠️ Wyświetlono pierwsze 5000 znaków tłumaczenia.")
                         else:
                             # Przycisk do tłumaczenia
                             if st.button("🔄 Przetłumacz na polski", key=translate_button_key):
-                                with st.spinner("🔄 Tłumaczenie na polski..."):
-                                    try:
-                                        text_to_translate = row_text[:5000] if len(row_text) > 5000 else row_text
-                                        translated = translate_text(text_to_translate, None)
+                                # KROK 1: Progress bar i optymalizacja
+                                progress_container = st.empty()
+                                
+                                with progress_container.container():
+                                    st.info("🔄 Tłumaczenie na polski... To może zająć kilka sekund.")
+                                    progress_bar = st.progress(0)
+                                    status_text = st.empty()
+                                
+                                try:
+                                    # Ograniczenie długości tekstu do 3000 znaków (optymalizacja)
+                                    text_to_translate = row_text[:3000] if len(row_text) > 3000 else row_text
+                                    
+                                    # Aktualizuj progress
+                                    status_text.text("📝 Przygotowywanie tekstu...")
+                                    progress_bar.progress(0.1)
+                                    
+                                    if len(text_to_translate) > 500:
+                                        status_text.text("📄 Dzielenie tekstu na fragmenty...")
+                                        progress_bar.progress(0.3)
+                                    
+                                    status_text.text("🌐 Tłumaczenie tekstu...")
+                                    progress_bar.progress(0.5)
+                                    translated = translate_text(text_to_translate, None)
+                                    
+                                    status_text.text("✅ Walidacja tłumaczenia...")
+                                    progress_bar.progress(0.8)
+                                    
+                                    is_valid, reason = double_validate_translation(text_to_translate, translated)
+                                    
+                                    progress_bar.progress(1.0)
+                                    progress_container.empty()
                                         
-                                        is_valid, reason = double_validate_translation(text_to_translate, translated)
+                                    if is_valid:
+                                        st.session_state[translation_key] = translated
+                                        st.success("✅ Tłumaczenie zakończone pomyślnie!")
+                                        # Wyświetl tłumaczenie bezpośrednio
+                                        st.divider()
+                                        st.markdown("**🇵🇱 Tłumaczenie (polski):**")
+                                        translated_text = st.session_state[translation_key]
                                         
-                                        if is_valid:
-                                            st.session_state[translation_key] = translated
-                                            st.success("✅ Tłumaczenie zakończone pomyślnie!")
-                                            # Wyświetl tłumaczenie bezpośrednio
+                                        # KROK 2: Użyj lepszego formatowania
+                                        display_trans = translated_text[:5000] if len(translated_text) > 5000 else translated_text
+                                        
+                                        formatted_trans = format_email_text(
+                                            display_trans,
+                                            highlight_pattern=search_query_final if search_query_final.lower() in translated_text.lower() else None,
+                                            case_sensitive=case_sensitive
+                                        )
+                                        
+                                        st.markdown(
+                                            f"<div style='background-color: #e8f5e9; padding: 15px; border-radius: 5px; border-left: 4px solid #4caf50; max-height: 500px; overflow-y: auto;'>{formatted_trans}</div>",
+                                            unsafe_allow_html=True
+                                        )
+                                        
+                                        if len(translated_text) > 5000:
+                                            st.caption("⚠️ Wyświetlono pierwsze 5000 znaków tłumaczenia.")
+                                    else:
+                                        st.warning(f"⚠️ Tłumaczenie nie przeszło walidacji: {reason}")
+                                        
+                                        # Progress dla fallback
+                                        with progress_container.container():
+                                            st.info("🔄 Próbuję alternatywnej metody tłumaczenia...")
+                                            fallback_progress = st.progress(0)
+                                            fallback_status = st.empty()
+                                        
+                                        fallback_status.text("🌐 Tłumaczenie metodą alternatywną...")
+                                        fallback_progress.progress(0.5)
+                                        fallback_translated = translate_with_fallback(text_to_translate)
+                                        fallback_progress.progress(1.0)
+                                        progress_container.empty()
+                                            
+                                        is_valid_fallback, reason_fallback = double_validate_translation(text_to_translate, fallback_translated)
+                                        
+                                        if is_valid_fallback:
+                                            st.session_state[translation_key] = fallback_translated
+                                            st.success("✅ Tłumaczenie zakończone pomyślnie (metoda alternatywna)!")
                                             st.divider()
                                             st.markdown("**🇵🇱 Tłumaczenie (polski):**")
                                             translated_text = st.session_state[translation_key]
                                             
-                                            if search_query_final.lower() in translated_text.lower():
-                                                pattern = re.compile(re.escape(search_query_final), re.IGNORECASE if not case_sensitive else 0)
-                                                display_trans = translated_text[:5000] if len(translated_text) > 5000 else translated_text
-                                                highlighted_trans = pattern.sub(lambda m: f"**{m.group()}**", display_trans)
-                                                st.markdown(highlighted_trans + ("..." if len(translated_text) > 5000 else ""))
-                                            else:
-                                                display_trans = translated_text[:5000] if len(translated_text) > 5000 else translated_text
-                                                st.text(display_trans + ("..." if len(translated_text) > 5000 else ""))
+                                            # KROK 2: Użyj lepszego formatowania
+                                            display_trans = translated_text[:5000] if len(translated_text) > 5000 else translated_text
+                                            
+                                            formatted_trans = format_email_text(
+                                                display_trans,
+                                                highlight_pattern=search_query_final if search_query_final.lower() in translated_text.lower() else None,
+                                                case_sensitive=case_sensitive
+                                            )
+                                            
+                                            st.markdown(
+                                                f"<div style='background-color: #e8f5e9; padding: 15px; border-radius: 5px; border-left: 4px solid #4caf50; max-height: 500px; overflow-y: auto;'>{formatted_trans}</div>",
+                                                unsafe_allow_html=True
+                                            )
+                                            
+                                            if len(translated_text) > 5000:
+                                                st.caption("⚠️ Wyświetlono pierwsze 5000 znaków tłumaczenia.")
                                         else:
-                                            st.warning(f"⚠️ Tłumaczenie nie przeszło walidacji: {reason}")
-                                            st.info("🔄 Próbuję alternatywnej metody tłumaczenia...")
-                                            fallback_translated = translate_with_fallback(text_to_translate)
-                                            
-                                            is_valid_fallback, reason_fallback = double_validate_translation(text_to_translate, fallback_translated)
-                                            
-                                            if is_valid_fallback:
-                                                st.session_state[translation_key] = fallback_translated
-                                                st.success("✅ Tłumaczenie zakończone pomyślnie (metoda alternatywna)!")
-                                                st.divider()
-                                                st.markdown("**🇵🇱 Tłumaczenie (polski):**")
-                                                translated_text = st.session_state[translation_key]
-                                                
-                                                if search_query_final.lower() in translated_text.lower():
-                                                    pattern = re.compile(re.escape(search_query_final), re.IGNORECASE if not case_sensitive else 0)
-                                                    display_trans = translated_text[:5000] if len(translated_text) > 5000 else translated_text
-                                                    highlighted_trans = pattern.sub(lambda m: f"**{m.group()}**", display_trans)
-                                                    st.markdown(highlighted_trans + ("..." if len(translated_text) > 5000 else ""))
-                                                else:
-                                                    display_trans = translated_text[:5000] if len(translated_text) > 5000 else translated_text
-                                                    st.text(display_trans + ("..." if len(translated_text) > 5000 else ""))
-                                            else:
-                                                st.error(f"❌ Nie udało się przetłumaczyć: {reason_fallback}")
-                                                st.info("💡 Wyświetlany jest oryginalny tekst po angielsku")
-                                    except Exception as e:
-                                        st.error(f"❌ Błąd podczas tłumaczenia: {e}")
+                                            st.error(f"❌ Nie udało się przetłumaczyć: {reason_fallback}")
+                                            st.info("💡 Wyświetlany jest oryginalny tekst po angielsku")
+                                except Exception as e:
+                                    progress_container.empty()
+                                    st.error(f"❌ Błąd podczas tłumaczenia: {e}")
                 except Exception as e:
                     st.warning(f"⚠️ Błąd podczas przetwarzania maila: {e}")
                     continue
@@ -392,4 +734,5 @@ else:
 
 # Footer
 st.divider()
-st.caption("📧 Akta Epsteina - Wyszukiwarka Maili | Zbudowane z ❤️ używając Streamlit i Hugging Face 🤗")
+st.caption("📧 Akta Epsteina - Wyszukiwarka Maili | Autor: **Petros Tovmasyan** | Zbudowane z ❤️ używając Streamlit i Hugging Face 🤗")
+st.caption("⚠️ Aplikacja służy wyłącznie celom badawczym i edukacyjnym. Tłumaczenia mogą zawierać błędy.")
