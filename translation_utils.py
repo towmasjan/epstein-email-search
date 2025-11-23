@@ -77,6 +77,8 @@ def translate_text(text: str, translator=None) -> str:
 
     # Spróbuj przetłumaczyć
     try:
+        import time
+
         from deep_translator import GoogleTranslator
 
         translator = GoogleTranslator(source="en", target="pl")
@@ -86,9 +88,13 @@ def translate_text(text: str, translator=None) -> str:
             chunks = split_text_into_chunks(text, max_length=4500)
             translated_chunks = []
 
-            for chunk in chunks:
+            for i, chunk in enumerate(chunks):
                 if chunk.strip():
                     try:
+                        # Dodaj małe opóźnienie między requestami, żeby uniknąć rate limiting
+                        if i > 0:
+                            time.sleep(0.5)
+
                         translated_chunk = translator.translate(chunk)
                         if translated_chunk and translated_chunk.strip():
                             translated_chunks.append(translated_chunk)
@@ -112,8 +118,17 @@ def translate_text(text: str, translator=None) -> str:
     except ImportError:
         # deep-translator nie jest zainstalowany
         pass
-    except Exception:
-        # W przypadku błędu zwróć oryginał
+    except Exception as e:
+        # W przypadku błędu zwróć oryginał (cicho, bez pokazywania błędów użytkownikowi)
+        # Aplikacja powinna działać nawet jeśli tłumaczenie nie działa
+        error_msg = str(e).lower()
+        if "429" in str(e) or "rate limit" in error_msg or "quota" in error_msg:
+            # Rate limiting - nie pokazuj błędu, tylko zwróć oryginał
+            pass
+        elif "timeout" in error_msg or "connection" in error_msg:
+            # Problem z połączeniem - nie pokazuj błędu, tylko zwróć oryginał
+            pass
+        # Dla innych błędów też zwróć oryginał cicho
         pass
 
     # Jeśli wszystko zawiedzie, zwróć oryginał
