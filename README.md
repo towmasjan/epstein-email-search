@@ -51,13 +51,26 @@ Jeśli nie ustawisz zmiennej środowiskowej, aplikacja użyje tokena zapisanego 
 4. Skopiuj token (zaczyna się od `hf_`)
 5. Ustaw jako zmienną środowiskową lub zostaw w kodzie
 
-## 💻 Uruchomienie
+## 💻 Uruchomienie lokalne
 
 ```bash
 streamlit run app.py
 ```
 
 Aplikacja otworzy się automatycznie w przeglądarce na `http://localhost:8501`
+
+## 🌐 Publikacja w sieci (Streamlit Cloud)
+
+Aplikacja jest gotowa do publikacji na Streamlit Community Cloud:
+
+1. Przejdź na https://share.streamlit.io/
+2. Zaloguj się przez GitHub
+3. Kliknij "New app"
+4. Wybierz repozytorium: `towmasjan/epstein-email-search`
+5. Branch: `main`, Main file: `app.py`
+6. Kliknij "Deploy!"
+
+Szczegółowe instrukcje: [QUICK_DEPLOY.md](QUICK_DEPLOY.md) lub [DEPLOY.md](DEPLOY.md)
 
 ## 📚 Jak używać
 
