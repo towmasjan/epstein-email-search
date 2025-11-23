@@ -1,6 +1,7 @@
 import streamlit as st
 from datasets import load_dataset
 import pandas as pd
+import os
 from translation_utils import (
     translate_text, 
     get_cache_key, 
@@ -70,6 +71,13 @@ st.set_page_config(
 
 st.title("📧 Akta Epsteina - Wyszukiwarka Maili")
 st.markdown("**Wyszukiwanie i przeglądanie maili po angielsku**")
+
+# Grafika na stronie głównej (opcjonalna - jeśli plik istnieje)
+header_image_path = "images/header.jpg"
+if os.path.exists(header_image_path):
+    # Streamlit automatycznie optymalizuje obrazy - używa use_container_width dla responsywności
+    # Obraz będzie responsywny i zoptymalizowany automatycznie przez Streamlit
+    st.image(header_image_path, use_container_width=True, caption="")
 
 # Opis aplikacji
 with st.expander("ℹ️ O aplikacji", expanded=False):
