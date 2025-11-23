@@ -7,7 +7,8 @@ from translation_utils import (
     extract_email_metadata,
     translate_query_to_english,
     double_validate_translation,
-    translate_with_fallback
+    translate_with_fallback,
+    classify_content_type
 )
 import re
 
@@ -205,13 +206,43 @@ if 'dataset' in st.session_state:
                     if len(filtered_df) > 0:
                         # KROK 1: Zapisz stan wyszukiwania w session_state
                         filtered_df_limited = filtered_df.head(100).copy()  # Ograniczenie do 100 wyników
+                        
+                        # Klasyfikuj i sortuj wyniki według typu zawartości
+                        filtered_df_limited['content_type'] = filtered_df_limited['text'].apply(
+                            lambda x: classify_content_type(str(x))[0] if pd.notna(x) else 'other'
+                        )
+                        filtered_df_limited['content_label'] = filtered_df_limited['text'].apply(
+                            lambda x: classify_content_type(str(x))[1] if pd.notna(x) else 'Inny dokument'
+                        )
+                        
+                        # Sortuj: maile pierwsze, potem metadane, potem inne
+                        type_order = {'email': 0, 'metadata': 1, 'json': 2, 'other': 3}
+                        filtered_df_limited['sort_order'] = filtered_df_limited['content_type'].map(type_order)
+                        filtered_df_limited = filtered_df_limited.sort_values('sort_order').reset_index(drop=True)
+                        
+                        # Usuń pomocniczą kolumnę sort_order
+                        filtered_df_limited = filtered_df_limited.drop(columns=['sort_order'])
+                        
                         st.session_state['search_results'] = filtered_df_limited
                         st.session_state['last_search_query'] = search_query_final
                         st.session_state['last_case_sensitive'] = case_sensitive
                         st.session_state['last_search_in_text'] = search_in_text
                         st.session_state['last_original_query'] = original_query
                         
-                        st.success(f"✅ Znaleziono {len(filtered_df)} maili")
+                        st.success(f"✅ Znaleziono {len(filtered_df)} wyników")
+                        
+                        # Statystyki typów
+                        type_counts = filtered_df_limited['content_type'].value_counts()
+                        stats_parts = []
+                        if 'email' in type_counts:
+                            stats_parts.append(f"📧 Maile: {type_counts['email']}")
+                        if 'metadata' in type_counts:
+                            stats_parts.append(f"📋 Metadane: {type_counts['metadata']}")
+                        if 'other' in type_counts:
+                            stats_parts.append(f"📄 Inne: {type_counts['other']}")
+                        
+                        if stats_parts:
+                            st.caption(" | ".join(stats_parts))
                         
                         # KROK 4: Paginacja wyników
                         RESULTS_PER_PAGE = 10
@@ -274,8 +305,21 @@ if 'dataset' in st.session_state:
                                 
                                 occurrences = row_text.lower().count(search_query_final.lower())
                                 
+                                # Klasyfikuj typ zawartości
+                                content_type, content_label = classify_content_type(row_text)
+                                
+                                # Wybierz odpowiednią ikonę w zależności od typu
+                                if content_type == 'email':
+                                    type_badge = "📧"
+                                elif content_type == 'metadata':
+                                    type_badge = "📋"
+                                else:
+                                    type_badge = "📄"
+                                
                                 # Nagłówek expandera z metadanymi
-                                expander_title = f"📧 {row_filename}"
+                                expander_title = f"{type_badge} {row_filename}"
+                                if content_type != 'email':
+                                    expander_title += f" [{content_label}]"
                                 if metadata_str:
                                     expander_title += f" | {metadata_str}"
                                 expander_title += f" ({occurrences} wystąpień)"
@@ -548,8 +592,21 @@ if 'dataset' in st.session_state:
                     
                     occurrences = row_text.lower().count(search_query_final.lower())
                     
+                    # Klasyfikuj typ zawartości
+                    content_type, content_label = classify_content_type(row_text)
+                    
+                    # Wybierz odpowiednią ikonę w zależności od typu
+                    if content_type == 'email':
+                        type_badge = "📧"
+                    elif content_type == 'metadata':
+                        type_badge = "📋"
+                    else:
+                        type_badge = "📄"
+                    
                     # Nagłówek expandera z metadanymi
-                    expander_title = f"📧 {row_filename}"
+                    expander_title = f"{type_badge} {row_filename}"
+                    if content_type != 'email':
+                        expander_title += f" [{content_label}]"
                     if metadata_str:
                         expander_title += f" | {metadata_str}"
                     expander_title += f" ({occurrences} wystąpień)"
@@ -569,6 +626,11 @@ if 'dataset' in st.session_state:
                                 if metadata['subject'] != 'N/A':
                                     st.markdown(f"**📌 Temat:** `{metadata['subject'][:50]}{'...' if len(metadata['subject']) > 50 else ''}`")
                             
+                            st.divider()
+                        
+                        # Informacja o typie zawartości dla nie-maili
+                        if content_type != 'email':
+                            st.info(f"ℹ️ **Typ zawartości:** {content_label}")
                             st.divider()
                         
                         # Wyświetl oryginalny tekst (zawsze po angielsku)

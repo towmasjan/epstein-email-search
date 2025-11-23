@@ -106,13 +106,11 @@ def load_translator():
                     # st.info(f"­čöä ┼üadowanie modelu {model_name}...")  # Ukryte dla u┼╝ytkownika
                     tokenizer = MarianTokenizer.from_pretrained(
                         model_name,
-                        token=hf_token,
-                        use_auth_token=True
+                        token=hf_token
                     )
                     model = MarianMTModel.from_pretrained(
                         model_name,
-                        token=hf_token,
-                        use_auth_token=True
+                        token=hf_token
                     )
                     
                     def translate_func(text, max_length=512):
@@ -173,8 +171,7 @@ def load_translator():
                             "translation",
                             model=model_name,
                             device=-1,
-                            token=hf_token,
-                            use_auth_token=True
+                            token=hf_token
                         )
                         # st.success(f"Ôťů Model {model_name} za┼éadowany przez pipeline!")  # Ukryte
                         return translator
@@ -485,6 +482,61 @@ def extract_email_metadata(text: str) -> Dict[str, str]:
                 metadata[key] = metadata[key][:97] + '...'
     
     return metadata
+
+def classify_content_type(text: str) -> tuple[str, str]:
+    """
+    Klasyfikuje typ zawartości tekstu.
+    
+    Args:
+        text: Tekst do klasyfikacji
+    
+    Returns:
+        Tuple (typ, etykieta) gdzie:
+        - typ: 'email', 'metadata', 'json', 'other'
+        - etykieta: Opisowa nazwa typu
+    """
+    if not text or len(text.strip()) < 10:
+        return ('other', 'Pusty tekst')
+    
+    text_lower = text.lower()
+    text_stripped = text.strip()
+    
+    # Sprawdź czy to JSON
+    if text_stripped.startswith('{') or text_stripped.startswith('['):
+        # Sprawdź czy to wygląda jak JSON (ma klucze i wartości)
+        if ('"' in text or "'" in text) and (':' in text or ',' in text):
+            return ('metadata', '📋 Metadane/JSON')
+    
+    # Sprawdź czy to wygląda jak mail
+    has_email_headers = (
+        bool(re.search(r'From:\s*', text, re.IGNORECASE)) or
+        bool(re.search(r'To:\s*', text, re.IGNORECASE)) or
+        bool(re.search(r'Subject:\s*', text, re.IGNORECASE)) or
+        bool(re.search(r'Date:\s*', text, re.IGNORECASE))
+    )
+    
+    # Sprawdź czy zawiera typowe elementy maila
+    has_email_content = (
+        bool(re.search(r'@', text)) or  # Adres email
+        bool(re.search(r'Dear\s+', text, re.IGNORECASE)) or  # "Dear..."
+        bool(re.search(r'Best regards', text, re.IGNORECASE)) or
+        bool(re.search(r'Sincerely', text, re.IGNORECASE))
+    )
+    
+    if has_email_headers or (has_email_content and len(text) > 100):
+        return ('email', '📧 Mail')
+    
+    # Sprawdź czy to metadane (strukturalne dane)
+    if any(keyword in text_lower for keyword in ['component', 'identifier', 'style', 'layout', 'metadata']):
+        if '{' in text or '[' in text:
+            return ('metadata', '📋 Metadane')
+    
+    # Sprawdź czy to może być konfiguracja/XML
+    if text_stripped.startswith('<') and '>' in text:
+        return ('metadata', '📋 Konfiguracja/XML')
+    
+    # Domyślnie - inny typ
+    return ('other', '📄 Inny dokument')
 
 def translate_query_to_english(query: str) -> str:
     """
