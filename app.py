@@ -322,9 +322,9 @@ def load_dataset_cached(dataset_name, split_name):
 
 
 @st.cache_data(ttl=3600, show_spinner=False)
-def convert_to_pandas_cached(dataset):
+def convert_to_pandas_cached(_dataset):
     """Cache'owana konwersja do pandas - nie blokuje UI przy cache hit."""
-    return dataset.to_pandas()
+    return _dataset.to_pandas()
 
 
 # Ładowanie datasetu
