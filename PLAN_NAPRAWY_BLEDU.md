@@ -163,4 +163,3 @@ Po implementacji sprawdzić:
 2. **KROK 2** - Wyświetlać wyniki z session_state
 3. **KROK 5** - Usunąć st.rerun() i użyć bezpośredniego wyświetlania
 4. **Walidacja** - Przetestować wszystkie scenariusze
-

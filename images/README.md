@@ -22,4 +22,3 @@
 - Streamlit automatycznie optymalizuje obrazy przy wyświetlaniu
 - Obraz będzie responsywny (dopasuje się do szerokości ekranu)
 - Jeśli plik nie istnieje, aplikacja po prostu go pominie
-

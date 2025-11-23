@@ -85,7 +85,7 @@ Jeśli wolisz graficzny interfejs:
 
 ## Ważne uwagi bezpieczeństwa
 
-⚠️ **UWAGA:** Plik `translation_utils.py` zawiera token Hugging Face w kodzie. 
+⚠️ **UWAGA:** Plik `translation_utils.py` zawiera token Hugging Face w kodzie.
 
 **Zalecane działania:**
 1. Przed publikacją usuń token z kodu lub użyj zmiennych środowiskowych
@@ -99,4 +99,3 @@ Po opublikowaniu projektu możesz:
 - Skonfigurować Streamlit Cloud do automatycznego wdrożenia
 - Dodać więcej dokumentacji
 - Utworzyć issues i pull requests
-

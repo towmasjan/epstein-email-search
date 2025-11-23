@@ -32,4 +32,3 @@
 - Aplikacja jest publiczna (darmowy plan)
 - Modele są duże - pierwsze ładowanie może zająć kilka minut
 - Token Hugging Face jest opcjonalny, ale zalecany
-

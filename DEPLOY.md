@@ -104,4 +104,3 @@ Jeśli Streamlit Cloud nie spełnia Twoich potrzeb, możesz użyć:
 ## 🎉 Gotowe!
 
 Po wdrożeniu Twoja aplikacja będzie dostępna publicznie w internecie!
-

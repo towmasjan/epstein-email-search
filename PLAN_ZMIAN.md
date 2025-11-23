@@ -184,7 +184,7 @@
 **Problem:** Dataset może nie mieć kolumn `date`, `from`, `to`, `subject`
 **Prawdopodobieństwo:** WYSOKIE - większość datasetów ma tylko `text` i `filename`
 **Wpływ:** ŚREDNI - możemy wyekstrahować z tekstu
-**Rozwiązanie:** 
+**Rozwiązanie:**
 - Utworzyć funkcję `extract_email_metadata(text)` używającą regex
 - Obsłużyć różne formaty nagłówków email (RFC 5322)
 - Obsłużyć przypadki gdy metadane nie są dostępne (zwrócić "N/A")
@@ -199,7 +199,7 @@ def extract_email_metadata(text):
         'to': 'N/A',
         'subject': 'N/A'
     }
-    
+
     # Wzorce regex dla różnych formatów
     date_patterns = [
         r'Date:\s*(.+?)(?:\n|$)',
@@ -295,4 +295,3 @@ Po zakończeniu wszystkich kroków:
 - [ ] Kod jest uporządkowany i czytelny
 - [ ] Nie ma błędów składniowych
 - [ ] Wydajność jest dobra
-

@@ -58,7 +58,7 @@ if os.path.exists(header_image_path):
 **Problem:** Dwie identyczne pętle dla wyświetlania wyników (linie 259-477 i 532-734)
 
 **Rozwiązanie:**
-- Utworzyć funkcję pomocniczą `display_email_result()` 
+- Utworzyć funkcję pomocniczą `display_email_result()`
 - Użyć tej funkcji w obu miejscach
 - Zmniejszy rozmiar kodu i ułatwi utrzymanie
 
@@ -128,4 +128,3 @@ Po implementacji:
 - ✅ Autor będzie wyświetlany jako "PT"
 - ✅ Kod będzie bardziej czytelny i zoptymalizowany
 - ✅ Aplikacja będzie działać szybciej i stabilniej
-

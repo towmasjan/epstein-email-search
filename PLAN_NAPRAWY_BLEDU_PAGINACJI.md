@@ -37,9 +37,9 @@ StreamlitAPIException: st.session_state.results_page cannot be modified after th
 **Problem:**
 ```python
 page = st.number_input(
-    "Strona", 
-    min_value=1, 
-    max_value=total_pages, 
+    "Strona",
+    min_value=1,
+    max_value=total_pages,
     value=st.session_state.get(page_key, 1),
     key=page_key,
     help=f"Wyświetlanie {RESULTS_PER_PAGE} wyników na stronę"
@@ -50,9 +50,9 @@ st.session_state[page_key] = page  # ❌ BŁĄD - nie można modyfikować
 **Rozwiązanie:**
 ```python
 page = st.number_input(
-    "Strona", 
-    min_value=1, 
-    max_value=total_pages, 
+    "Strona",
+    min_value=1,
+    max_value=total_pages,
     value=st.session_state.get(page_key, 1),
     key=page_key,
     help=f"Wyświetlanie {RESULTS_PER_PAGE} wyników na stronę"
@@ -209,4 +209,3 @@ Po implementacji:
 - ✅ Paginacja będzie działać poprawnie
 - ✅ Wartość strony będzie synchronizowana automatycznie przez widget
 - ✅ Aplikacja będzie działać bez błędów
-
