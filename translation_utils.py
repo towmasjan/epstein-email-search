@@ -1,6 +1,6 @@
-��"""
-Modu<%� do t<%�umaczenia tekstu z angielskiego na polski u<%]%ywaj%oc modelu Hugging Face.
-Zawiera r%%wnie<%]% funkcje pomocnicze do ekstrakcji metadanych z maili.
+﻿"""
+Modu┼é do t┼éumaczenia tekstu z angielskiego na polski u┼╝ywaj─ůc modelu Hugging Face.
+Zawiera r├│wnie┼╝ funkcje pomocnicze do ekstrakcji metadanych z maili.
 """
 import streamlit as st
 from transformers import pipeline  # type: ignore
@@ -10,18 +10,18 @@ import hashlib
 from typing import Dict, Optional
 
 # Token Hugging Face
-# PRIORYTET: 1. Zmienna <%drodowiskowa HF_TOKEN lub HUGGINGFACE_TOKEN
-#           2. Token poni<%]%ej (fallback)
+# PRIORYTET: 1. Zmienna ┼Ťrodowiskowa HF_TOKEN lub HUGGINGFACE_TOKEN
+#           2. Token poni┼╝ej (fallback)
 # 
-# Jak uzyska%� token:
-# 1. Zaloguj si%� na https://huggingface.co/
-# 2. Przejd<%Q% do Settings > Access Tokens
-# 3. Utw%%rz nowy token z uprawnieniami "Read"
-# 4. Skopiuj token i ustaw jako zmienn%o <%drodowiskow%o:
-#    Windows PowerShell: $env:HF_TOKEN="tw%%j_token"
-#    Linux/Mac: export HF_TOKEN="tw%%j_token"
+# Jak uzyska─ç token:
+# 1. Zaloguj si─Ö na https://huggingface.co/
+# 2. Przejd┼║ do Settings > Access Tokens
+# 3. Utw├│rz nowy token z uprawnieniami "Read"
+# 4. Skopiuj token i ustaw jako zmienn─ů ┼Ťrodowiskow─ů:
+#    Windows PowerShell: $env:HF_TOKEN="tw├│j_token"
+#    Linux/Mac: export HF_TOKEN="tw├│j_token"
 #    Lub dodaj do pliku .env
-HF_TOKEN = None  # Token musi by ustawiony jako zmienna [rodowiskowa
+HF_TOKEN = None  # Token musi być ustawiony jako zmienna środowiskowa
 
 # Funkcje pomocnicze
 def is_pipeline(translator):
@@ -35,14 +35,14 @@ def is_pipeline(translator):
 
 def is_translation_valid(original, translated):
     """
-    Sprawdza czy t<%�umaczenie jest poprawne i r%%<%]%ni si%� od orygina<%�u.
+    Sprawdza czy t┼éumaczenie jest poprawne i r├│┼╝ni si─Ö od orygina┼éu.
     
     Args:
         original: Oryginalny tekst
-        translated: Przet<%�umaczony tekst
+        translated: Przet┼éumaczony tekst
     
     Returns:
-        True je<%dli t<%�umaczenie jest poprawne, False w przeciwnym razie
+        True je┼Ťli t┼éumaczenie jest poprawne, False w przeciwnym razie
     """
     if not translated or not isinstance(translated, str):
         return False
@@ -50,13 +50,13 @@ def is_translation_valid(original, translated):
     if not translated.strip():
         return False
     
-    # Sprawd<%Q% czy t<%�umaczenie r%%<%]%ni si%� od orygina<%�u
+    # Sprawd┼║ czy t┼éumaczenie r├│┼╝ni si─Ö od orygina┼éu
     if translated.strip().lower() == original.strip().lower():
         return False
     
-    # Sprawd<%Q% czy nie zawiera dziwnych znak%%w (znaki kontrolne)
+    # Sprawd┼║ czy nie zawiera dziwnych znak├│w (znaki kontrolne)
     if len(translated) > 0:
-        # Sprawd<%Q% pierwsze 50 znak%%w - je<%dli wszystkie s%o znakami kontrolnymi, to problem
+        # Sprawd┼║ pierwsze 50 znak├│w - je┼Ťli wszystkie s─ů znakami kontrolnymi, to problem
         control_chars = [c for c in translated[:50] if ord(c) > 127 and ord(c) < 160]
         if len(control_chars) == len(translated[:50]) and len(translated[:50]) > 0:
             return False
@@ -65,7 +65,7 @@ def is_translation_valid(original, translated):
 
 def get_cache_key(text):
     """
-    Generuje unikalny klucz cache dla tekstu u<%]%ywaj%oc hash MD5.
+    Generuje unikalny klucz cache dla tekstu u┼╝ywaj─ůc hash MD5.
     
     Args:
         text: Tekst do zahashowania
@@ -77,20 +77,20 @@ def get_cache_key(text):
         return hashlib.md5(b"").hexdigest()
     return hashlib.md5(text.encode('utf-8')).hexdigest()
 
-# Cache dla modelu - <%�adujemy raz
+# Cache dla modelu - ┼éadujemy raz
 @st.cache_resource
 def load_translator():
-    """<%�aduje model t<%�umaczeniowy - cache'owany przez Streamlit"""
-    # U<%]%yj tokena z zmiennej <%drodowiskowej lub fallback z kodu
+    """┼üaduje model t┼éumaczeniowy - cache'owany przez Streamlit"""
+    # U┼╝yj tokena z zmiennej ┼Ťrodowiskowej lub fallback z kodu
     # Token nie jest wymagany dla publicznych modeli, ale pomaga w rate limiting
     hf_token = os.getenv("HF_TOKEN") or os.getenv("HUGGINGFACE_TOKEN") or HF_TOKEN
     
-    # Informacja o tokenie (ukryta dla u<%]%ytkownika)
+    # Informacja o tokenie (ukryta dla u┼╝ytkownika)
     # if hf_token and hf_token != "":
-    #     token_source = "zmiennej <%drodowiskowej" if os.getenv("HF_TOKEN") or os.getenv("HUGGINGFACE_TOKEN") else "kodu"
-    #     st.info(f"��9 U<%]%ywam tokena Hugging Face z {token_source}")
+    #     token_source = "zmiennej ┼Ťrodowiskowej" if os.getenv("HF_TOKEN") or os.getenv("HUGGINGFACE_TOKEN") else "kodu"
+    #     st.info(f"­čöĹ U┼╝ywam tokena Hugging Face z {token_source}")
     
-    # Lista modeli do wypr%%bowania
+    # Lista modeli do wypr├│bowania
     model_options = [
         "Helsinki-NLP/opus-mt-en-pl",
         "facebook/mbart-large-50-many-to-many-mmt",  # Alternatywny model
@@ -98,12 +98,12 @@ def load_translator():
     
     for model_name in model_options:
         try:
-            # Opcja 1: U<%]%yj MarianMTModel dla modeli Helsinki-NLP
+            # Opcja 1: U┼╝yj MarianMTModel dla modeli Helsinki-NLP
             if "Helsinki-NLP" in model_name:
                 try:
                     from transformers import MarianMTModel, MarianTokenizer  # type: ignore
                     
-                    # st.info(f"��� <%�adowanie modelu {model_name}...")  # Ukryte dla u<%]%ytkownika
+                    # st.info(f"­čöä ┼üadowanie modelu {model_name}...")  # Ukryte dla u┼╝ytkownika
                     tokenizer = MarianTokenizer.from_pretrained(
                         model_name,
                         token=hf_token,
@@ -117,11 +117,11 @@ def load_translator():
                     
                     def translate_func(text, max_length=512):
                         try:
-                            # Upewnij si%�, <%]%e tekst jest stringiem
+                            # Upewnij si─Ö, ┼╝e tekst jest stringiem
                             if not isinstance(text, str):
                                 text = str(text)
                             
-                            # Oczy<%d%� tekst z problematycznych znak%%w
+                            # Oczy┼Ť─ç tekst z problematycznych znak├│w
                             text = text.strip()
                             if not text:
                                 return [{"translation_text": ""}]
@@ -135,7 +135,7 @@ def load_translator():
                                 max_length=max_length
                             )
                             
-                            # Generuj t<%�umaczenie
+                            # Generuj t┼éumaczenie
                             outputs = model.generate(
                                 **inputs, 
                                 max_length=max_length, 
@@ -146,28 +146,28 @@ def load_translator():
                             # Dekoduj wynik
                             translated = tokenizer.decode(outputs[0], skip_special_tokens=True)
                             
-                            # Upewnij si%�, <%]%e wynik jest poprawnym stringiem
+                            # Upewnij si─Ö, ┼╝e wynik jest poprawnym stringiem
                             if not isinstance(translated, str):
                                 translated = str(translated)
                             
                             translated = translated.strip()
                             
-                            # Sprawd<%Q% czy t<%�umaczenie jest poprawne u<%]%ywaj%oc funkcji walidacyjnej
+                            # Sprawd┼║ czy t┼éumaczenie jest poprawne u┼╝ywaj─ůc funkcji walidacyjnej
                             if not is_translation_valid(text, translated):
-                                # T<%�umaczenie nie jest poprawne - zwr%%%� orygina<%� (fallback zostanie u<%]%yty w translate_text)
-                                # st.warning("���^ Model zwr%%ci<%� nieprawid<%�owe t<%�umaczenie - u<%]%yj%� fallback")  # Ukryte
+                                # T┼éumaczenie nie jest poprawne - zwr├│─ç orygina┼é (fallback zostanie u┼╝yty w translate_text)
+                                # st.warning("ÔÜá´ŞĆ Model zwr├│ci┼é nieprawid┼éowe t┼éumaczenie - u┼╝yj─Ö fallback")  # Ukryte
                                 return [{"translation_text": text}]
                             
                             return [{"translation_text": translated}]
                         except Exception as e:
-                            # W przypadku b<%�%�du zwr%%%� orygina<%�
+                            # W przypadku b┼é─Ödu zwr├│─ç orygina┼é
                             return [{"translation_text": text}]
                     
-                    # st.success(f"�eo Model {model_name} za<%�adowany pomy<%dlnie!")  # Ukryte
+                    # st.success(f"Ôťů Model {model_name} za┼éadowany pomy┼Ťlnie!")  # Ukryte
                     return translate_func
                 except Exception as e1:
-                    # st.warning(f"���^ Nie uda<%�o si%� za<%�adowa%� {model_name} metod%o MarianMT: {str(e1)[:200]}")  # Ukryte
-                    # Spr%%buj pipeline
+                    # st.warning(f"ÔÜá´ŞĆ Nie uda┼éo si─Ö za┼éadowa─ç {model_name} metod─ů MarianMT: {str(e1)[:200]}")  # Ukryte
+                    # Spr├│buj pipeline
                     try:
                         translator = pipeline(
                             "translation",
@@ -176,13 +176,13 @@ def load_translator():
                             token=hf_token,
                             use_auth_token=True
                         )
-                        # st.success(f"�eo Model {model_name} za<%�adowany przez pipeline!")  # Ukryte
+                        # st.success(f"Ôťů Model {model_name} za┼éadowany przez pipeline!")  # Ukryte
                         return translator
                     except Exception as e2:
-                        # st.warning(f"���^ Pipeline r%%wnie<%]% nie zadzia<%�a<%�: {str(e2)[:200]}")  # Ukryte
+                        # st.warning(f"ÔÜá´ŞĆ Pipeline r├│wnie┼╝ nie zadzia┼éa┼é: {str(e2)[:200]}")  # Ukryte
                         continue
             else:
-                # Dla innych modeli u<%]%yj standardowego pipeline
+                # Dla innych modeli u┼╝yj standardowego pipeline
                 try:
                     translator = pipeline(
                         "translation",
@@ -191,25 +191,25 @@ def load_translator():
                         token=hf_token,
                         use_auth_token=True
                     )
-                    # st.success(f"�eo Model {model_name} za<%�adowany pomy<%dlnie!")  # Ukryte
+                    # st.success(f"Ôťů Model {model_name} za┼éadowany pomy┼Ťlnie!")  # Ukryte
                     return translator
                 except Exception as e:
-                    # st.warning(f"���^ Nie uda<%�o si%� za<%�adowa%� {model_name}: {str(e)[:200]}")  # Ukryte
+                    # st.warning(f"ÔÜá´ŞĆ Nie uda┼éo si─Ö za┼éadowa─ç {model_name}: {str(e)[:200]}")  # Ukryte
                     continue
         except Exception as e:
-            # st.warning(f"���^ B<%�%od przy pr%%bie za<%�adowania {model_name}: {str(e)[:200]}")  # Ukryte
+            # st.warning(f"ÔÜá´ŞĆ B┼é─ůd przy pr├│bie za┼éadowania {model_name}: {str(e)[:200]}")  # Ukryte
             continue
     
-    # Je<%dli <%]%aden model nie zadzia<%�a<%� - ukryte dla u<%]%ytkownika
-    # st.error("�A� Nie uda<%�o si%� za<%�adowa%� <%]%adnego modelu t<%�umaczeniowego")
-    # st.info("�:� Wskaz%%wki:")
-    # st.info("1. Sprawd<%Q% po<%�%oczenie z internetem")
-    # st.info("2. Sprawd<%Q% czy token jest poprawny")
-    # st.info("3. Spr%%buj zaktualizowa%� transformers: pip install --upgrade transformers")
+    # Je┼Ťli ┼╝aden model nie zadzia┼éa┼é - ukryte dla u┼╝ytkownika
+    # st.error("ÔŁî Nie uda┼éo si─Ö za┼éadowa─ç ┼╝adnego modelu t┼éumaczeniowego")
+    # st.info("­čĺí Wskaz├│wki:")
+    # st.info("1. Sprawd┼║ po┼é─ůczenie z internetem")
+    # st.info("2. Sprawd┼║ czy token jest poprawny")
+    # st.info("3. Spr├│buj zaktualizowa─ç transformers: pip install --upgrade transformers")
     return None
 
 def split_text_into_chunks(text, max_length=500):
-    """Dzieli tekst na mniejsze fragmenty dla modelu t<%�umaczeniowego"""
+    """Dzieli tekst na mniejsze fragmenty dla modelu t┼éumaczeniowego"""
     # Dzielimy na zdania
     sentences = re.split(r'(?<=[.!?])\s+', text)
     chunks = []
@@ -230,34 +230,34 @@ def split_text_into_chunks(text, max_length=500):
 
 def translate_text(text, translator=None):
     """
-    T<%�umaczy tekst z angielskiego na polski.
-    U<%]%ywa cache w session state, aby nie t<%�umaczy%� tego samego tekstu dwa razy.
+    T┼éumaczy tekst z angielskiego na polski.
+    U┼╝ywa cache w session state, aby nie t┼éumaczy─ç tego samego tekstu dwa razy.
     """
     if not text or not text.strip():
         return text
     
-    # Inicjalizuj cache t<%�umacze<%� je<%dli nie istnieje
+    # Inicjalizuj cache t┼éumacze┼ä je┼Ťli nie istnieje
     if 'translation_cache' not in st.session_state:
         st.session_state['translation_cache'] = {}
     
-    # Sprawd<%Q% cache
-    cache_key = get_cache_key(text)  # U<%]%ywamy hash MD5 dla unikalnych kluczy
+    # Sprawd┼║ cache
+    cache_key = get_cache_key(text)  # U┼╝ywamy hash MD5 dla unikalnych kluczy
     if cache_key in st.session_state['translation_cache']:
         return st.session_state['translation_cache'][cache_key]
     
-    # Je<%dli nie ma w cache, t<%�umacz
+    # Je┼Ťli nie ma w cache, t┼éumacz
     try:
         if translator is None:
-            # Sprawd<%Q% czy translator jest ju<%]% w session_state
+            # Sprawd┼║ czy translator jest ju┼╝ w session_state
             if 'translator' not in st.session_state:
                 st.session_state['translator'] = load_translator()
             translator = st.session_state['translator']
         
         if translator is None:
-            # Spr%%buj u<%]%y%� alternatywnej biblioteki
+            # Spr├│buj u┼╝y─ç alternatywnej biblioteki
             return translate_with_fallback(text)
         
-        # Dla d<%�ugich tekst%%w dzielimy na fragmenty
+        # Dla d┼éugich tekst├│w dzielimy na fragmenty
         if len(text) > 500:
             chunks = split_text_into_chunks(text, max_length=500)
             translated_chunks = []
@@ -265,7 +265,7 @@ def translate_text(text, translator=None):
             for chunk in chunks:
                 if chunk.strip():
                     try:
-                        # Sprawd<%Q% czy translator jest funkcj%o czy pipeline
+                        # Sprawd┼║ czy translator jest funkcj─ů czy pipeline
                         if is_pipeline(translator):
                             # To jest pipeline
                             result = translator(chunk, max_length=512)
@@ -273,7 +273,7 @@ def translate_text(text, translator=None):
                             # To jest nasza funkcja translate_func
                             result = translator(chunk, max_length=512)
                         
-                        # Obs<%�uga r%%<%]%nych format%%w odpowiedzi
+                        # Obs┼éuga r├│┼╝nych format├│w odpowiedzi
                         translated_text_chunk = None
                         if isinstance(result, list) and len(result) > 0:
                             if isinstance(result[0], dict) and 'translation_text' in result[0]:
@@ -285,24 +285,24 @@ def translate_text(text, translator=None):
                         elif isinstance(result, str):
                             translated_text_chunk = result
                         
-                        # Sprawd<%Q% czy t<%�umaczenie jest poprawne u<%]%ywaj%oc funkcji walidacyjnej
+                        # Sprawd┼║ czy t┼éumaczenie jest poprawne u┼╝ywaj─ůc funkcji walidacyjnej
                         if is_translation_valid(chunk, translated_text_chunk):
                             translated_chunks.append(translated_text_chunk)
                         else:
-                            # Je<%dli t<%�umaczenie nie jest poprawne, u<%]%yj fallback
+                            # Je┼Ťli t┼éumaczenie nie jest poprawne, u┼╝yj fallback
                             fallback_trans = translate_with_fallback(chunk)
                             translated_chunks.append(fallback_trans if fallback_trans != chunk else chunk)
                     except Exception as e:
-                        # st.warning(f"B<%�%od t<%�umaczenia fragmentu: {e}")  # Ukryte
-                        # U<%]%yj fallback zamiast orygina<%�u
+                        # st.warning(f"B┼é─ůd t┼éumaczenia fragmentu: {e}")  # Ukryte
+                        # U┼╝yj fallback zamiast orygina┼éu
                         fallback_trans = translate_with_fallback(chunk)
                         translated_chunks.append(fallback_trans if fallback_trans != chunk else chunk)
             
             translated_text = " ".join(translated_chunks)
         else:
-            # Dla kr%%tszych tekst%%w t<%�umaczymy ca<%�o<%d%�
+            # Dla kr├│tszych tekst├│w t┼éumaczymy ca┼éo┼Ť─ç
             try:
-                # Sprawd<%Q% czy translator jest funkcj%o czy pipeline
+                # Sprawd┼║ czy translator jest funkcj─ů czy pipeline
                 if is_pipeline(translator):
                     # To jest pipeline
                     result = translator(text, max_length=512)
@@ -310,7 +310,7 @@ def translate_text(text, translator=None):
                     # To jest nasza funkcja translate_func
                     result = translator(text, max_length=512)
                 
-                # Obs<%�uga r%%<%]%nych format%%w odpowiedzi
+                # Obs┼éuga r├│┼╝nych format├│w odpowiedzi
                 translated_text = None
                 if isinstance(result, list) and len(result) > 0:
                     if isinstance(result[0], dict) and 'translation_text' in result[0]:
@@ -322,13 +322,13 @@ def translate_text(text, translator=None):
                 elif isinstance(result, str):
                     translated_text = result
                 
-                # Sprawd<%Q% czy t<%�umaczenie jest poprawne u<%]%ywaj%oc funkcji walidacyjnej
+                # Sprawd┼║ czy t┼éumaczenie jest poprawne u┼╝ywaj─ůc funkcji walidacyjnej
                 if not is_translation_valid(text, translated_text):
-                    # Je<%dli t<%�umaczenie nie jest poprawne, u<%]%yj fallback
+                    # Je┼Ťli t┼éumaczenie nie jest poprawne, u┼╝yj fallback
                     translated_text = translate_with_fallback(text)
             except Exception as e:
-                # st.warning(f"B<%�%od t<%�umaczenia: {e}")  # Ukryte
-                # U<%]%yj fallback zamiast orygina<%�u
+                # st.warning(f"B┼é─ůd t┼éumaczenia: {e}")  # Ukryte
+                # U┼╝yj fallback zamiast orygina┼éu
                 translated_text = translate_with_fallback(text)
         
         # Zapisz w cache
@@ -337,25 +337,25 @@ def translate_text(text, translator=None):
         return translated_text
         
     except Exception as e:
-        # st.warning(f"B<%�%od podczas t<%�umaczenia: {e}")  # Ukryte
-        # Spr%%buj fallback
+        # st.warning(f"B┼é─ůd podczas t┼éumaczenia: {e}")  # Ukryte
+        # Spr├│buj fallback
         return translate_with_fallback(text)
 
 def translate_with_fallback(text):
-    """Alternatywna metoda t<%�umaczenia u<%]%ywaj%oca deep-translator jako fallback"""
+    """Alternatywna metoda t┼éumaczenia u┼╝ywaj─ůca deep-translator jako fallback"""
     if not text or not text.strip():
         return text
     
-    # Sprawd<%Q% cache dla fallback
+    # Sprawd┼║ cache dla fallback
     cache_key = f"fallback_{get_cache_key(text)}"
     if 'translation_cache' in st.session_state and cache_key in st.session_state['translation_cache']:
         return st.session_state['translation_cache'][cache_key]
     
     try:
-        # Spr%%buj u<%]%y%� deep-translator
+        # Spr├│buj u┼╝y─ç deep-translator
         from deep_translator import GoogleTranslator  # type: ignore
         
-        # Dla d<%�ugich tekst%%w dzielimy na fragmenty
+        # Dla d┼éugich tekst├│w dzielimy na fragmenty
         if len(text) > 5000:
             chunks = split_text_into_chunks(text, max_length=4500)
             translated_chunks = []
@@ -384,25 +384,25 @@ def translate_with_fallback(text):
             st.session_state['translation_cache'][cache_key] = translated
             return translated
     except ImportError:
-        # st.info("�:� Zainstaluj deep-translator: pip install deep-translator")  # Ukryte
+        # st.info("­čĺí Zainstaluj deep-translator: pip install deep-translator")  # Ukryte
         pass
     except Exception as e:
-        # st.warning(f"���^ B<%�%od t<%�umaczenia fallback (Google Translator): {str(e)}")  # Ukryte
-        # st.info("�:� T<%�umaczenie nie jest dost%�pne - wy<%dwietlany jest orygina<%�")  # Ukryte
+        # st.warning(f"ÔÜá´ŞĆ B┼é─ůd t┼éumaczenia fallback (Google Translator): {str(e)}")  # Ukryte
+        # st.info("­čĺí T┼éumaczenie nie jest dost─Öpne - wy┼Ťwietlany jest orygina┼é")  # Ukryte
         pass
     
-    # Je<%dli wszystko zawiedzie, zwr%%%� orygina<%�
+    # Je┼Ťli wszystko zawiedzie, zwr├│─ç orygina┼é
     return text
 
 def extract_email_metadata(text: str) -> Dict[str, str]:
     """
-    Wyci%oga metadane z tekstu maila (data, nadawca, odbiorca, temat).
+    Wyci─ůga metadane z tekstu maila (data, nadawca, odbiorca, temat).
     
     Args:
         text: Tekst maila
     
     Returns:
-        S<%�ownik z metadanymi: {'date': ..., 'from': ..., 'to': ..., 'subject': ...}
+        S┼éownik z metadanymi: {'date': ..., 'from': ..., 'to': ..., 'subject': ...}
     """
     metadata = {
         'date': 'N/A',
@@ -414,8 +414,8 @@ def extract_email_metadata(text: str) -> Dict[str, str]:
     if not text:
         return metadata
     
-    # Wzorce regex dla r%%<%]%nych format%%w nag<%�%%wk%%w email
-    # Date: r%%<%]%ne formaty
+    # Wzorce regex dla r├│┼╝nych format├│w nag┼é├│wk├│w email
+    # Date: r├│┼╝ne formaty
     date_patterns = [
         r'Date:\s*(.+?)(?:\n|$)',
         r'Sent:\s*(.+?)(?:\n|$)',
@@ -444,43 +444,43 @@ def extract_email_metadata(text: str) -> Dict[str, str]:
         r'Re:\s*(.+?)(?:\n|$)'
     ]
     
-    # Szukaj w pierwszych 2000 znakach (nag<%�%%wki s%o na pocz%otku)
+    # Szukaj w pierwszych 2000 znakach (nag┼é├│wki s─ů na pocz─ůtku)
     header_text = text[:2000] if len(text) > 2000 else text
     
-    # Wyci%ognij dat%�
+    # Wyci─ůgnij dat─Ö
     for pattern in date_patterns:
         match = re.search(pattern, header_text, re.IGNORECASE | re.MULTILINE)
         if match:
             metadata['date'] = match.group(1).strip()
             break
     
-    # Wyci%ognij nadawc%�
+    # Wyci─ůgnij nadawc─Ö
     for pattern in from_patterns:
         match = re.search(pattern, header_text, re.IGNORECASE | re.MULTILINE)
         if match:
             metadata['from'] = match.group(1).strip()
             break
     
-    # Wyci%ognij odbiorc%�
+    # Wyci─ůgnij odbiorc─Ö
     for pattern in to_patterns:
         match = re.search(pattern, header_text, re.IGNORECASE | re.MULTILINE)
         if match:
             metadata['to'] = match.group(1).strip()
             break
     
-    # Wyci%ognij temat
+    # Wyci─ůgnij temat
     for pattern in subject_patterns:
         match = re.search(pattern, header_text, re.IGNORECASE | re.MULTILINE)
         if match:
             metadata['subject'] = match.group(1).strip()
             break
     
-    # Oczy<%d%� metadane (usu<%� znaki specjalne, skr%%%� je<%dli za d<%�ugie)
+    # Oczy┼Ť─ç metadane (usu┼ä znaki specjalne, skr├│─ç je┼Ťli za d┼éugie)
     for key in metadata:
         if metadata[key] != 'N/A':
-            # Usu<%� znaki nowej linii i nadmiarowe spacje
+            # Usu┼ä znaki nowej linii i nadmiarowe spacje
             metadata[key] = re.sub(r'\s+', ' ', metadata[key]).strip()
-            # Skr%%%� je<%dli za d<%�ugie (max 100 znak%%w)
+            # Skr├│─ç je┼Ťli za d┼éugie (max 100 znak├│w)
             if len(metadata[key]) > 100:
                 metadata[key] = metadata[key][:97] + '...'
     
@@ -488,75 +488,75 @@ def extract_email_metadata(text: str) -> Dict[str, str]:
 
 def translate_query_to_english(query: str) -> str:
     """
-    T<%�umaczy zapytanie wyszukiwania z polskiego na angielski.
-    U<%]%ywa Google Translator jako fallback (model HF nie ma pl->en).
+    T┼éumaczy zapytanie wyszukiwania z polskiego na angielski.
+    U┼╝ywa Google Translator jako fallback (model HF nie ma pl->en).
     
     Args:
-        query: Zapytanie wyszukiwania (mo<%]%e by%� po polsku lub angielsku)
+        query: Zapytanie wyszukiwania (mo┼╝e by─ç po polsku lub angielsku)
     
     Returns:
-        Przet<%�umaczone zapytanie (lub orygina<%� je<%dli ju<%]% po angielsku)
+        Przet┼éumaczone zapytanie (lub orygina┼é je┼Ťli ju┼╝ po angielsku)
     """
     if not query or not query.strip():
         return query
     
-    # Prosta heurystyka: je<%dli zapytanie zawiera g<%�%%wnie polskie znaki, przet<%�umacz
-    polish_chars = re.compile(r'[%o%�%�<%�<%�%%<%d<%Q%<%]%%�%%[<%�<%�%�<%�<%c%<%W%]')
+    # Prosta heurystyka: je┼Ťli zapytanie zawiera g┼é├│wnie polskie znaki, przet┼éumacz
+    polish_chars = re.compile(r'[─ů─ç─Ö┼é┼ä├│┼Ť┼║┼╝─ä─ć─ś┼ü┼â├ô┼Ü┼╣┼╗]')
     has_polish = bool(polish_chars.search(query))
     
     if not has_polish:
-        # Prawdopodobnie ju<%]% po angielsku
+        # Prawdopodobnie ju┼╝ po angielsku
         return query
     
-    # Spr%%buj przet<%�umaczy%� u<%]%ywaj%oc Google Translator
+    # Spr├│buj przet┼éumaczy─ç u┼╝ywaj─ůc Google Translator
     try:
         from deep_translator import GoogleTranslator
         translator = GoogleTranslator(source='pl', target='en')
         translated = translator.translate(query)
         
-        # Sprawd<%Q% czy t<%�umaczenie jest sensowne
+        # Sprawd┼║ czy t┼éumaczenie jest sensowne
         if translated and translated.strip() and translated != query:
             return translated
     except Exception:
-        # Je<%dli t<%�umaczenie nie dzia<%�a, zwr%%%� orygina<%�
+        # Je┼Ťli t┼éumaczenie nie dzia┼éa, zwr├│─ç orygina┼é
         pass
     
     return query
 
 def double_validate_translation(original: str, translated: str) -> tuple[bool, Optional[str]]:
     """
-    Podw%%jna walidacja t<%�umaczenia - sprawdza czy t<%�umaczenie jest poprawne.
+    Podw├│jna walidacja t┼éumaczenia - sprawdza czy t┼éumaczenie jest poprawne.
     
     Args:
         original: Oryginalny tekst
-        translated: Przet<%�umaczony tekst
+        translated: Przet┼éumaczony tekst
     
     Returns:
-        Tuple (is_valid, reason) - czy t<%�umaczenie jest poprawne i pow%%d odrzucenia (je<%dli nie)
+        Tuple (is_valid, reason) - czy t┼éumaczenie jest poprawne i pow├│d odrzucenia (je┼Ťli nie)
     """
     # Walidacja 1: Podstawowa walidacja
     if not is_translation_valid(original, translated):
-        return False, "T<%�umaczenie nie przesz<%�o podstawowej walidacji"
+        return False, "T┼éumaczenie nie przesz┼éo podstawowej walidacji"
     
-    # Walidacja 2: Sprawdzenie d<%�ugo<%dci
+    # Walidacja 2: Sprawdzenie d┼éugo┼Ťci
     original_len = len(original.strip())
     translated_len = len(translated.strip())
     
-    # T<%�umaczenie nie powinno by%� zbyt kr%%tkie (mniej ni<%]% 30% orygina<%�u)
+    # T┼éumaczenie nie powinno by─ç zbyt kr├│tkie (mniej ni┼╝ 30% orygina┼éu)
     if translated_len < original_len * 0.3:
-        return False, "T<%�umaczenie jest zbyt kr%%tkie"
+        return False, "T┼éumaczenie jest zbyt kr├│tkie"
     
-    # T<%�umaczenie nie powinno by%� zbyt d<%�ugie (wi%�cej ni<%]% 300% orygina<%�u)
+    # T┼éumaczenie nie powinno by─ç zbyt d┼éugie (wi─Öcej ni┼╝ 300% orygina┼éu)
     if translated_len > original_len * 3:
-        return False, "T<%�umaczenie jest zbyt d<%�ugie"
+        return False, "T┼éumaczenie jest zbyt d┼éugie"
     
-    # Walidacja 3: Sprawdzenie czy nie zawiera zbyt wielu "dziwnych" znak%%w
-    # (ju<%]% sprawdzane w is_translation_valid, ale dodatkowo sprawdzamy procent)
-    valid_chars = re.compile(r'[a-zA-Z0-9%o%�%�<%�<%�%%<%d<%Q%<%]%%�%%[<%�<%�%�<%�<%c%<%W%.,!?;:\s\-\'\"()]+')
+    # Walidacja 3: Sprawdzenie czy nie zawiera zbyt wielu "dziwnych" znak├│w
+    # (ju┼╝ sprawdzane w is_translation_valid, ale dodatkowo sprawdzamy procent)
+    valid_chars = re.compile(r'[a-zA-Z0-9─ů─ç─Ö┼é┼ä├│┼Ť┼║┼╝─ä─ć─ś┼ü┼â├ô┼Ü┼╣┼╗.,!?;:\s\-\'\"()]+')
     cleaned = "".join(valid_chars.findall(translated))
     if len(translated) > 0 and (len(cleaned) / len(translated)) < 0.8:
-        return False, "T<%�umaczenie zawiera zbyt wiele nieprawid<%�owych znak%%w"
+        return False, "T┼éumaczenie zawiera zbyt wiele nieprawid┼éowych znak├│w"
     
-    # Wszystkie walidacje przesz<%�y
+    # Wszystkie walidacje przesz┼éy
     return True, None
 
