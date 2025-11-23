@@ -205,7 +205,21 @@ def _handle_translation(row_text, translation_key, search_query_final, case_sens
         if is_valid:
             st.session_state[translation_key] = translated
             st.success("✅ Tłumaczenie zakończone pomyślnie!")
-            st.rerun()
+            # Wyświetl tłumaczenie bezpośrednio
+            st.divider()
+            st.markdown("**🇵🇱 Tłumaczenie (polski):**")
+            display_trans = translated[:5000] if len(translated) > 5000 else translated
+            formatted_trans = format_email_text(
+                display_trans,
+                highlight_pattern=search_query_final if search_query_final.lower() in translated.lower() else None,
+                case_sensitive=case_sensitive
+            )
+            st.markdown(
+                f"<div style='background-color: #e8f5e9; padding: 15px; border-radius: 5px; border-left: 4px solid #4caf50; max-height: 500px; overflow-y: auto;'>{formatted_trans}</div>",
+                unsafe_allow_html=True
+            )
+            if len(translated) > 5000:
+                st.caption("⚠️ Wyświetlono pierwsze 5000 znaków tłumaczenia.")
         else:
             # Fallback
             progress_container.empty()
@@ -227,7 +241,21 @@ def _handle_translation(row_text, translation_key, search_query_final, case_sens
             if is_valid_fallback:
                 st.session_state[translation_key] = fallback_translated
                 st.success("✅ Tłumaczenie zakończone pomyślnie (metoda alternatywna)!")
-                st.rerun()
+                # Wyświetl tłumaczenie bezpośrednio
+                st.divider()
+                st.markdown("**🇵🇱 Tłumaczenie (polski):**")
+                display_trans = fallback_translated[:5000] if len(fallback_translated) > 5000 else fallback_translated
+                formatted_trans = format_email_text(
+                    display_trans,
+                    highlight_pattern=search_query_final if search_query_final.lower() in fallback_translated.lower() else None,
+                    case_sensitive=case_sensitive
+                )
+                st.markdown(
+                    f"<div style='background-color: #e8f5e9; padding: 15px; border-radius: 5px; border-left: 4px solid #4caf50; max-height: 500px; overflow-y: auto;'>{formatted_trans}</div>",
+                    unsafe_allow_html=True
+                )
+                if len(fallback_translated) > 5000:
+                    st.caption("⚠️ Wyświetlono pierwsze 5000 znaków tłumaczenia.")
             else:
                 st.error(f"❌ Nie udało się przetłumaczyć: {reason_fallback}")
                 st.info("💡 Wyświetlany jest oryginalny tekst po angielsku")
@@ -272,6 +300,17 @@ with st.expander("ℹ️ O aplikacji", expanded=False):
     *Aplikacja wykorzystuje biblioteki: Streamlit, Hugging Face Transformers, Pandas*
     """)
 
+# Cache'owane funkcje dla ciężkich operacji
+@st.cache_data(ttl=3600, show_spinner=False)
+def load_dataset_cached(dataset_name, split_name):
+    """Cache'owane ładowanie datasetu - nie blokuje UI przy cache hit"""
+    return load_dataset(dataset_name, split=split_name)
+
+@st.cache_data(ttl=3600, show_spinner=False)
+def convert_to_pandas_cached(dataset):
+    """Cache'owana konwersja do pandas - nie blokuje UI przy cache hit"""
+    return dataset.to_pandas()
+
 # Ładowanie datasetu
 DATASET_NAME = "tensonaut/EPSTEIN_FILES_20K"
 SPLIT_NAME = "train"
@@ -279,7 +318,7 @@ SPLIT_NAME = "train"
 if 'dataset' not in st.session_state:
     with st.spinner("🔄 Ładowanie zbioru danych..."):
         try:
-            dataset = load_dataset(DATASET_NAME, split=SPLIT_NAME)
+            dataset = load_dataset_cached(DATASET_NAME, SPLIT_NAME)
             st.session_state['dataset'] = dataset
             st.success("✅ Zbiór danych załadowany!")
         except Exception as e:
@@ -296,7 +335,7 @@ if 'dataset' in st.session_state:
     if 'dataframe' not in st.session_state:
         with st.spinner("🔄 Konwersja danych do formatu pandas..."):
             try:
-                df = dataset.to_pandas()
+                df = convert_to_pandas_cached(dataset)
                 st.session_state['dataframe'] = df
             except Exception as e:
                 st.error(f"❌ Błąd podczas konwersji do pandas: {e}")
