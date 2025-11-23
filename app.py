@@ -3,6 +3,7 @@ Uproszczona wersja aplikacji do wyszukiwania maili Epsteina.
 
 Stabilna, bez duplikacji kodu, z lepszym error handling.
 """
+
 import re
 
 import pandas as pd
@@ -155,9 +156,9 @@ def display_email_result(row, idx, search_query_final, case_sensitive, translati
                 display_trans = translated_text[:5000] if len(translated_text) > 5000 else translated_text
                 formatted_trans = format_email_text(
                     display_trans,
-                    highlight_pattern=search_query_final
-                    if search_query_final.lower() in translated_text.lower()
-                    else None,
+                    highlight_pattern=(
+                        search_query_final if search_query_final.lower() in translated_text.lower() else None
+                    ),
                     case_sensitive=case_sensitive,
                 )
 
@@ -254,9 +255,9 @@ def _handle_translation(row_text, translation_key, search_query_final, case_sens
                 display_trans = fallback_translated[:5000] if len(fallback_translated) > 5000 else fallback_translated
                 formatted_trans = format_email_text(
                     display_trans,
-                    highlight_pattern=search_query_final
-                    if search_query_final.lower() in fallback_translated.lower()
-                    else None,
+                    highlight_pattern=(
+                        search_query_final if search_query_final.lower() in fallback_translated.lower() else None
+                    ),
                     case_sensitive=case_sensitive,
                 )
                 st.markdown(
