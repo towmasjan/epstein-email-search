@@ -234,17 +234,19 @@ if 'dataset' in st.session_state:
                                     key=page_key,
                                     help=f"Wyświetlanie {RESULTS_PER_PAGE} wyników na stronę"
                                 )
-                                st.session_state[page_key] = page
+                                # Wartość jest automatycznie synchronizowana przez widget - nie modyfikujemy ręcznie
                             
                             st.caption(f"📄 Strona {page} z {total_pages} ({RESULTS_PER_PAGE} wyników na stronę, łącznie {total_results} wyników)")
                             st.divider()
                         
                         # Oblicz zakres wyników do wyświetlenia
                         if total_pages > 1:
+                            # page jest już zdefiniowane z widgetu powyżej
                             start_idx = (page - 1) * RESULTS_PER_PAGE
                             end_idx = min(start_idx + RESULTS_PER_PAGE, total_results)
                             results_to_show = filtered_df_limited.iloc[start_idx:end_idx]
                         else:
+                            page = 1  # Domyślna wartość gdy nie ma paginacji
                             results_to_show = filtered_df_limited
                         
                         # Wyświetl wyniki z aktualnej strony
@@ -506,18 +508,19 @@ if 'dataset' in st.session_state:
                         key=page_key,
                         help=f"Wyświetlanie {RESULTS_PER_PAGE} wyników na stronę"
                     )
-                    st.session_state[page_key] = page
+                    # Wartość jest automatycznie synchronizowana przez widget - nie modyfikujemy ręcznie
                 
                 st.caption(f"📄 Strona {page} z {total_pages} ({RESULTS_PER_PAGE} wyników na stronę, łącznie {total_results} wyników)")
                 st.divider()
             
             # Oblicz zakres wyników do wyświetlenia
             if total_pages > 1:
-                page = st.session_state.get('results_page', 1)
+                # page jest już zdefiniowane z widgetu powyżej w bloku if total_pages > 1
                 start_idx = (page - 1) * RESULTS_PER_PAGE
                 end_idx = min(start_idx + RESULTS_PER_PAGE, total_results)
                 results_to_show = filtered_df.iloc[start_idx:end_idx]
             else:
+                page = 1  # Domyślna wartość gdy nie ma paginacji
                 results_to_show = filtered_df
             
             # Wyświetl wyniki z aktualnej strony (identyczna logika jak w głównej pętli)
