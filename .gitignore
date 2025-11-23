@@ -34,7 +34,8 @@ env/
 *~
 
 # Streamlit
-.streamlit/
+# .streamlit/config.toml - NIE ignoruj, potrzebny do wdrożenia
+.streamlit/secrets.toml
 
 # OS
 .DS_Store
